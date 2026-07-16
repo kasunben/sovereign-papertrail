@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.openfs.papertrail",
   "name": "PaperTrail",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Evidence-mapping canvas — map your evidence, follow the story.",
   "type": "sovereign",
   "runtime": "native",

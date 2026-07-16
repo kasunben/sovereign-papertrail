@@ -1,0 +1,36 @@
+.page {
+  display: grid;
+  gap: var(--sv-space-6);
+  margin-inline: auto;
+  max-width: 720px;
+}
+
+.backLink {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-sm);
+  text-decoration: none;
+}
+
+.panel {
+  border: 1px solid var(--sv-color-border);
+  border-radius: var(--sv-radius-md);
+  display: grid;
+  gap: var(--sv-space-4);
+  padding: var(--sv-space-4);
+}
+
+.panel h2 {
+  font-size: var(--sv-font-size-md);
+  margin: 0;
+}
+
+.form {
+  display: grid;
+  gap: var(--sv-space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sv-space-2);
+}

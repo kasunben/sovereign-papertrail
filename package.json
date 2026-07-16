@@ -1,11 +1,13 @@
 {
   "name": "@sovereignfs/sovereign-papertrail",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "db:generate:pg": "drizzle-kit generate --config=drizzle.config.pg.ts"
+    "db:generate:pg": "drizzle-kit generate --config=drizzle.config.pg.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@sovereignfs/sdk": "workspace:*",
@@ -22,6 +24,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "drizzle-kit": "^0.31.10",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.8"
   }
 }

@@ -100,3 +100,9 @@ export const papertrailEdges = sqliteTable(
   },
   (t) => [index('papertrail_edges_board_idx').on(t.boardId)],
 );
+
+export type PapertrailProject = typeof papertrailProjects.$inferSelect;
+export type PapertrailProjectMember = typeof papertrailProjectMembers.$inferSelect;
+export type PapertrailBoard = typeof papertrailBoards.$inferSelect;
+export type PapertrailNode = typeof papertrailNodes.$inferSelect;
+export type PapertrailEdge = typeof papertrailEdges.$inferSelect;

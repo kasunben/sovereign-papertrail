@@ -21,7 +21,7 @@ Build sequence — each step depends on the previous unless noted `[parallel]`:
 | Order | Work                                                                   | PTR ID(s)      | Depends on         | Status |
 | ----- | ----------------------------------------------------------------------- | -------------- | ------------------- | ------ |
 | 1     | Scaffold: `manifest.json`, directory skeleton, `package.json`, `app/_db/schema.ts` (5 tables), `migrations/` | — (foundation) | —                    | ✅ |
-| 2     | Project CRUD (create, edit, archive, hard-delete)                       | PTR-01, PTR-02 | 1                    | |
+| 2     | Project CRUD (create, edit, archive, hard-delete)                       | PTR-01, PTR-02 | 1                    | ✅ |
 | 3     | Project membership + roles (owner/editor/viewer), last-owner guard      | PTR-03         | 2, `sdk.directory`   | |
 | 4     | Board CRUD within a project                                             | PTR-04         | 2                    | |
 | 5     | Canvas skeleton: React Flow wrapper, pan/zoom/drag/multi-select, select + connect modes, right-click context menus | PTR-05 | 4 | |
