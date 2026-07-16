@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { sdk } from '@sovereignfs/sdk';
 import { Badge, Button, FormField, Input, PageHeader, Textarea } from '@sovereignfs/ui';
 import { archiveProject, getProject, restoreProject, updateProjectSettings } from '../../_lib/actions';
 import { canManageProject, formatProjectRole } from '../../_lib/project-rules';
 import { DeleteProjectButton } from '../../_components/DeleteProjectButton';
+import { MembersSection } from '../../_components/MembersSection';
 import styles from './settings.module.css';
 
 interface SettingsPageProps {
@@ -12,7 +14,10 @@ interface SettingsPageProps {
 
 export default async function ProjectSettingsPage({ params }: SettingsPageProps) {
   const { projectId } = await params;
-  const project = await getProject(projectId).catch(() => null);
+  const [project, session] = await Promise.all([
+    getProject(projectId).catch(() => null),
+    sdk.auth.requireSession(),
+  ]);
   if (!project) notFound();
   const userCanManage = canManageProject(project.currentUserRole);
 
@@ -53,6 +58,16 @@ export default async function ProjectSettingsPage({ params }: SettingsPageProps)
           {userCanManage ? <Button type="submit">Save settings</Button> : null}
         </form>
       </section>
+
+      <div className={styles.panel}>
+        <MembersSection
+          projectId={project.id}
+          currentUserId={session.user.id}
+          members={project.members}
+          directoryLookupFailed={project.directoryLookupFailed}
+          userCanManage={userCanManage}
+        />
+      </div>
 
       {userCanManage ? (
         <section className={styles.panel} aria-labelledby="danger-zone">

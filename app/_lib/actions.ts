@@ -4,15 +4,17 @@ import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { sdk } from '@sovereignfs/sdk';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import type { DirectoryUser } from '@sovereignfs/sdk';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import {
   papertrailProjectMembers,
   papertrailProjects,
   type PapertrailProject,
+  type PapertrailProjectMember,
 } from '../_db/schema';
 import { recordActivity } from './platform-events';
-import { assertProjectRole, type ProjectRole } from './project-rules';
+import { assertProjectRole, isProjectRole, type ProjectRole } from './project-rules';
 
 // The SDK intentionally returns an opaque dialect-agnostic DB client.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,8 +30,15 @@ export interface ProjectListItem extends PapertrailProject {
   currentUserRole: ProjectRole;
 }
 
+export interface ProjectMember extends PapertrailProjectMember {
+  displayName: string | null;
+  email: string | null;
+}
+
 export interface ProjectDetail extends PapertrailProject {
   currentUserRole: ProjectRole;
+  members: ProjectMember[];
+  directoryLookupFailed: boolean;
 }
 
 async function getContext(): Promise<ProjectContext> {
@@ -143,7 +152,204 @@ export async function getProject(projectId: string): Promise<ProjectDetail> {
   const role = await getMembership(db, tenantId, projectId, userId);
   assertProjectRole(role, 'viewer');
   const project = await getProjectRow(db, tenantId, projectId);
-  return { ...project, currentUserRole: role };
+
+  const memberRows = await db
+    .select()
+    .from(papertrailProjectMembers)
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+      ),
+    )
+    .orderBy(asc(papertrailProjectMembers.joinedAt));
+
+  let directoryRows: DirectoryUser[] = [];
+  let directoryLookupFailed = false;
+  try {
+    directoryRows = await sdk.directory.resolveUsers({
+      ids: memberRows.map((member) => member.userId),
+    });
+  } catch {
+    directoryLookupFailed = true;
+  }
+  const userById = new Map(directoryRows.map((user) => [user.id, user]));
+
+  return {
+    ...project,
+    currentUserRole: role,
+    directoryLookupFailed,
+    members: memberRows.map((member) => ({
+      ...member,
+      displayName: userById.get(member.userId)?.name ?? null,
+      email: userById.get(member.userId)?.email ?? null,
+    })),
+  };
+}
+
+/**
+ * Backs the member picker's typeahead — search the platform directory by
+ * name/email so inviteProjectMember never has to ask a human for a raw
+ * internal user id (nobody knows their own id). Viewer role is enough since
+ * this only reads display-safe directory fields, not project membership.
+ */
+export async function searchProjectDirectoryUsers(
+  projectId: string,
+  query: string,
+): Promise<DirectoryUser[]> {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'viewer');
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  return sdk.directory.searchUsers({ query: trimmed, limit: 8 });
+}
+
+async function countProjectOwners(db: Db, tenantId: string, projectId: string): Promise<number> {
+  const owners = await db
+    .select({ userId: papertrailProjectMembers.userId })
+    .from(papertrailProjectMembers)
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+        eq(papertrailProjectMembers.role, 'owner'),
+      ),
+    );
+  return owners.length;
+}
+
+export async function inviteProjectMember(projectId: string, invitedUserId: string, role: string) {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'owner');
+  if (!isProjectRole(role)) throw new Error('Invalid project role.');
+
+  // Resolve against the platform directory before inserting a membership
+  // row — otherwise a typo'd/stale ID silently creates a phantom member that
+  // never shows up as an active user anywhere (getProject filters display
+  // fields through the same resolveUsers call, so it would just render
+  // blank forever instead of failing loudly at invite time).
+  const [invitedUser] = await sdk.directory.resolveUsers({ ids: [invitedUserId] });
+  if (!invitedUser) throw new Error('That user could not be found.');
+
+  const existing = await db
+    .select()
+    .from(papertrailProjectMembers)
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+        eq(papertrailProjectMembers.userId, invitedUserId),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length) {
+    await updateProjectMemberRole(projectId, invitedUserId, role);
+    return;
+  }
+
+  await db.insert(papertrailProjectMembers).values({
+    tenantId,
+    projectId,
+    userId: invitedUserId,
+    role,
+    invitedBy: userId,
+    joinedAt: now(),
+  });
+
+  const project = await getProjectRow(db, tenantId, projectId);
+  await recordActivity({
+    action: 'papertrail.project.member_invited',
+    subjectUserId: invitedUserId,
+    targetType: 'project',
+    targetId: projectId,
+    summary: `Invited a member to "${project.name}" as ${role}.`,
+  });
+
+  revalidateProject(projectId);
+}
+
+export async function updateProjectMemberRole(projectId: string, memberUserId: string, role: string) {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'owner');
+  if (!isProjectRole(role)) throw new Error('Invalid project role.');
+
+  const rows = await db
+    .select()
+    .from(papertrailProjectMembers)
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+        eq(papertrailProjectMembers.userId, memberUserId),
+      ),
+    )
+    .limit(1);
+  const target = rows[0];
+  if (!target) throw new Error('Member not found.');
+
+  if (target.role === 'owner' && role !== 'owner') {
+    const ownerCount = await countProjectOwners(db, tenantId, projectId);
+    if (ownerCount <= 1) throw new Error('The last owner cannot be demoted.');
+  }
+
+  await db
+    .update(papertrailProjectMembers)
+    .set({ role })
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+        eq(papertrailProjectMembers.userId, memberUserId),
+      ),
+    );
+
+  revalidateProject(projectId);
+}
+
+export async function removeProjectMember(projectId: string, memberUserId: string) {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'owner');
+
+  const members = await db
+    .select()
+    .from(papertrailProjectMembers)
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+      ),
+    );
+  const target = members.find((member) => member.userId === memberUserId);
+  if (!target) return;
+  const ownerCount = members.filter((member) => member.role === 'owner').length;
+  if (target.userId === userId && target.role === 'owner' && ownerCount <= 1) {
+    throw new Error('The last owner cannot remove themselves.');
+  }
+
+  await db
+    .delete(papertrailProjectMembers)
+    .where(
+      and(
+        eq(papertrailProjectMembers.tenantId, tenantId),
+        eq(papertrailProjectMembers.projectId, projectId),
+        eq(papertrailProjectMembers.userId, memberUserId),
+      ),
+    );
+
+  const project = await getProjectRow(db, tenantId, projectId);
+  await recordActivity({
+    action: 'papertrail.project.member_removed',
+    subjectUserId: memberUserId,
+    targetType: 'project',
+    targetId: projectId,
+    summary:
+      memberUserId === userId
+        ? `Left project "${project.name}".`
+        : `Removed a member from "${project.name}".`,
+  });
+
+  revalidateProject(projectId);
 }
 
 export async function createProject(formData: FormData) {

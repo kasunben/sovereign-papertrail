@@ -1,0 +1,82 @@
+.section {
+  display: grid;
+  gap: var(--sv-space-4);
+}
+
+.header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sv-space-2);
+}
+
+.header h2 {
+  font-size: var(--sv-font-size-md);
+  margin: 0;
+}
+
+.list {
+  display: grid;
+  gap: var(--sv-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  align-items: center;
+  border: 1px solid var(--sv-color-border);
+  border-radius: var(--sv-radius-md);
+  display: flex;
+  gap: var(--sv-space-3);
+  padding: var(--sv-space-2) var(--sv-space-3);
+}
+
+.identity {
+  display: grid;
+  flex: 1;
+  gap: 0;
+  min-width: 0;
+}
+
+.identity strong {
+  font-size: var(--sv-font-size-sm);
+}
+
+.identity p {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-xs);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: var(--sv-color-text-secondary);
+  cursor: pointer;
+  font-size: var(--sv-font-size-sm);
+  padding: var(--sv-space-1) var(--sv-space-2);
+}
+
+.removeButton:hover {
+  color: var(--sv-color-text-primary);
+}
+
+.inviteRow {
+  align-items: start;
+  display: flex;
+  gap: var(--sv-space-2);
+}
+
+.inviteRow > :first-child {
+  flex: 1;
+}
+
+.errorText {
+  color: var(--sv-color-error-text);
+  font-size: var(--sv-font-size-sm);
+  margin: 0;
+}
