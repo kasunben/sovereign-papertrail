@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "io.openfs.papertrail",
+  "name": "PaperTrail",
+  "version": "0.1.0",
+  "description": "Evidence-mapping canvas — map your evidence, follow the story.",
+  "type": "sovereign",
+  "runtime": "native",
+  "routePrefix": "/papertrail",
+  "shell": "default",
+  "icon": "icon.svg",
+  "permissions": ["auth:session", "db:readWrite", "data:provide", "activity:write"],
+  "repository": "https://github.com/kasunben/sovereign-papertrail",
+  "compatibility": {
+    "minPlatformVersion": "0.26.4"
+  }
+}
