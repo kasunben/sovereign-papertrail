@@ -1,0 +1,30 @@
+.page {
+  display: grid;
+  gap: var(--sv-space-6);
+  margin-inline: auto;
+  max-width: 1040px;
+}
+
+.backLink {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-sm);
+  text-decoration: none;
+}
+
+.headerActions {
+  align-items: center;
+  display: flex;
+  gap: var(--sv-space-3);
+}
+
+.boardGrid {
+  display: grid;
+  gap: var(--sv-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .boardGrid {
+    grid-template-columns: 1fr;
+  }
+}

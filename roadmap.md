@@ -23,14 +23,14 @@ Build sequence — each step depends on the previous unless noted `[parallel]`:
 | 1     | Scaffold: `manifest.json`, directory skeleton, `package.json`, `app/_db/schema.ts` (5 tables), `migrations/` | — (foundation) | —                    | ✅ |
 | 2     | Project CRUD (create, edit, archive, hard-delete)                       | PTR-01, PTR-02 | 1                    | ✅ |
 | 3     | Project membership + roles (owner/editor/viewer), last-owner guard      | PTR-03         | 2, `sdk.directory`   | ✅ |
-| 4     | Board CRUD within a project                                             | PTR-04         | 2                    | |
-| 5     | Canvas skeleton: React Flow wrapper, pan/zoom/drag/multi-select, select + connect modes, right-click context menus | PTR-05 | 4 | |
-| 6     | Text nodes + server-side markup sanitisation (allow-list, ported HTML approach) | PTR-06 | 5 | |
-| 7     | Image nodes: upload → `jimp` re-encode/resize (1400px) + thumbnail (480px) → `sdk.storage`; serve route with cache headers | PTR-07 | 5 | |
-| 8     | Link nodes: OpenGraph scraper hardened past legacy (resolve-then-block private/loopback/link-local ranges, not just literal `localhost`), 5s timeout, bounded read | PTR-08 | 5 | |
-| 9     | Edge styling + on-canvas edge editor (label/colour/width/style/curve/animation) `[parallel with 6–8]` | PTR-09 | 5 | |
-| 10    | Tags on nodes + board-wide search (live match count, hide-non-matches toggle) | PTR-10 | 6, 7, 8 | |
-| 11    | Offline-first sync: port legacy `sync.js` (localStorage cache, ~1.2s debounce, 409-triggered conflict callback, 5s retry timer, `online` event listener) | PTR-11 | 6–10 | |
+| 4     | Board CRUD within a project                                             | PTR-04         | 2                    | ✅ |
+| 5     | Canvas skeleton: React Flow wrapper, pan/zoom/drag/multi-select, select + connect modes, right-click context menus | PTR-05 | 4 | ✅ |
+| 6     | Text nodes + server-side markup sanitisation (allow-list, ported HTML approach) | PTR-06 | 5 | ✅ |
+| 7     | Image nodes: upload → `jimp` re-encode/resize (1400px) + thumbnail (480px) → `sdk.storage`; serve route with cache headers | PTR-07 | 5 | ✅ |
+| 8     | Link nodes: OpenGraph scraper hardened past legacy (resolve-then-block private/loopback/link-local ranges, not just literal `localhost`), 5s timeout, bounded read | PTR-08 | 5 | ✅ |
+| 9     | Edge styling + on-canvas edge editor (label/colour/width/style/curve/animation) `[parallel with 6–8]` | PTR-09 | 5 | ✅ |
+| 10    | Tags on nodes + board-wide search (live match count, hide-non-matches toggle) | PTR-10 | 6, 7, 8 | ✅ |
+| 11    | Offline-first sync: port legacy `sync.js` (localStorage cache, ~1.2s debounce, 409-triggered conflict callback, 5s retry timer, `online` event listener) | PTR-11 | 6–10 | ✅ |
 | 12    | Optimistic concurrency: version token on every snapshot, 409 on stale save, conflict notice + reload-newer-state UI | PTR-12 | 11 | |
 | 13    | JSON export/import, incl. the legacy-board import bridge               | PTR-13         | 11, 12               | |
 | 14    | Viewer role enforcement: hide editing affordances client-side, reject writes server-side on every route | PTR-14 | 3, 6–9 | |

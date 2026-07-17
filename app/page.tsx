@@ -57,7 +57,7 @@ export default async function PaperTrailIndexPage() {
 
 function ProjectCard({ project }: { project: ProjectListItem }) {
   return (
-    <Link href={`/papertrail/${project.id}/settings`} className={styles.cardLink}>
+    <Link href={`/papertrail/${project.id}`} className={styles.cardLink}>
       <Card interactive className={styles.projectCard}>
         <div className={styles.cardHeader}>
           <h2>{project.name}</h2>

@@ -6,25 +6,18 @@ import { redirect } from 'next/navigation';
 import { sdk } from '@sovereignfs/sdk';
 import type { DirectoryUser } from '@sovereignfs/sdk';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
-import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import {
+  papertrailBoards,
   papertrailProjectMembers,
   papertrailProjects,
+  type PapertrailBoard,
   type PapertrailProject,
   type PapertrailProjectMember,
 } from '../_db/schema';
+import { type Db, getRequestContext, requireProjectRole } from './access';
 import { recordActivity } from './platform-events';
-import { assertProjectRole, isProjectRole, type ProjectRole } from './project-rules';
-
-// The SDK intentionally returns an opaque dialect-agnostic DB client.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Db = BaseSQLiteDatabase<'async', any, any>;
-
-interface ProjectContext {
-  db: Db;
-  userId: string;
-  tenantId: string;
-}
+import { isProjectRole, type ProjectRole } from './project-rules';
+import { sanitizeTextMarkup } from './sanitize';
 
 export interface ProjectListItem extends PapertrailProject {
   currentUserRole: ProjectRole;
@@ -41,11 +34,7 @@ export interface ProjectDetail extends PapertrailProject {
   directoryLookupFailed: boolean;
 }
 
-async function getContext(): Promise<ProjectContext> {
-  const session = await sdk.auth.requireSession();
-  const db = (await sdk.db.getClient()) as Db;
-  return { db, userId: session.user.id, tenantId: session.user.tenantId };
-}
+const getContext = getRequestContext;
 
 function now() {
   return Math.floor(Date.now() / 1000);
@@ -54,39 +43,6 @@ function now() {
 function formString(formData: FormData, key: string, fallback = '') {
   const value = formData.get(key);
   return typeof value === 'string' ? value.trim() : fallback;
-}
-
-async function getMembership(
-  db: Db,
-  tenantId: string,
-  projectId: string,
-  userId: string,
-): Promise<ProjectRole | null> {
-  const rows = await db
-    .select({ role: papertrailProjectMembers.role })
-    .from(papertrailProjectMembers)
-    .where(
-      and(
-        eq(papertrailProjectMembers.tenantId, tenantId),
-        eq(papertrailProjectMembers.projectId, projectId),
-        eq(papertrailProjectMembers.userId, userId),
-      ),
-    )
-    .limit(1);
-  const role = rows[0]?.role;
-  return role && ['owner', 'editor', 'viewer'].includes(role) ? (role as ProjectRole) : null;
-}
-
-async function requireProjectRole(
-  db: Db,
-  tenantId: string,
-  projectId: string,
-  userId: string,
-  requiredRole: ProjectRole,
-): Promise<ProjectRole> {
-  const role = await getMembership(db, tenantId, projectId, userId);
-  assertProjectRole(role, requiredRole);
-  return role;
 }
 
 async function getProjectRow(
@@ -149,8 +105,7 @@ export async function listProjects(
 
 export async function getProject(projectId: string): Promise<ProjectDetail> {
   const { db, userId, tenantId } = await getContext();
-  const role = await getMembership(db, tenantId, projectId, userId);
-  assertProjectRole(role, 'viewer');
+  const role = await requireProjectRole(db, tenantId, projectId, userId, 'viewer');
   const project = await getProjectRow(db, tenantId, projectId);
 
   const memberRows = await db
@@ -185,6 +140,20 @@ export async function getProject(projectId: string): Promise<ProjectDetail> {
       email: userById.get(member.userId)?.email ?? null,
     })),
   };
+}
+
+/**
+ * Lighter-weight than getProject: skips the member/directory lookup for
+ * pages (e.g. the boards list) that only need the project row and the
+ * caller's role.
+ */
+export async function getProjectSummary(
+  projectId: string,
+): Promise<{ project: PapertrailProject; currentUserRole: ProjectRole }> {
+  const { db, userId, tenantId } = await getContext();
+  const role = await requireProjectRole(db, tenantId, projectId, userId, 'viewer');
+  const project = await getProjectRow(db, tenantId, projectId);
+  return { project, currentUserRole: role };
 }
 
 /**
@@ -455,8 +424,9 @@ export async function hardDeleteProject(projectId: string) {
   await requireProjectRole(db, tenantId, projectId, userId, 'owner');
   const project = await getProjectRow(db, tenantId, projectId);
 
-  // Boards/nodes/edges/assets cascade will be added as those tables gain
-  // writers (v0.1 steps 4+); nothing to clean up here yet beyond membership.
+  // Nodes/edges/assets cascade will be added once those tables gain writers
+  // (v0.1 steps 6+); boards are cleaned up here now that they're writable.
+  await db.delete(papertrailBoards).where(eq(papertrailBoards.projectId, projectId));
   await db
     .delete(papertrailProjectMembers)
     .where(eq(papertrailProjectMembers.projectId, projectId));
@@ -473,4 +443,151 @@ export async function hardDeleteProject(projectId: string) {
 
   revalidatePath('/papertrail');
   redirect('/papertrail');
+}
+
+async function getBoardRow(
+  db: Db,
+  tenantId: string,
+  projectId: string,
+  boardId: string,
+): Promise<PapertrailBoard> {
+  const rows = await db
+    .select()
+    .from(papertrailBoards)
+    .where(
+      and(
+        eq(papertrailBoards.tenantId, tenantId),
+        eq(papertrailBoards.projectId, projectId),
+        eq(papertrailBoards.id, boardId),
+      ),
+    )
+    .limit(1);
+  const board = rows[0];
+  if (!board) throw new Error('Board not found.');
+  return board;
+}
+
+export async function getBoard(
+  projectId: string,
+  boardId: string,
+): Promise<{ board: PapertrailBoard; currentUserRole: ProjectRole }> {
+  const { db, userId, tenantId } = await getContext();
+  const role = await requireProjectRole(db, tenantId, projectId, userId, 'viewer');
+  const board = await getBoardRow(db, tenantId, projectId, boardId);
+  return { board, currentUserRole: role };
+}
+
+export async function listBoards(projectId: string): Promise<PapertrailBoard[]> {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'viewer');
+
+  const boards = await db
+    .select()
+    .from(papertrailBoards)
+    .where(and(eq(papertrailBoards.tenantId, tenantId), eq(papertrailBoards.projectId, projectId)));
+
+  return boards.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function createBoard(projectId: string, formData: FormData) {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'editor');
+
+  const title = formString(formData, 'title');
+  if (!title) throw new Error('Board title is required.');
+
+  const id = randomUUID();
+  const ts = now();
+
+  await db.insert(papertrailBoards).values({
+    id,
+    tenantId,
+    projectId,
+    title,
+    version: 0,
+    createdAt: ts,
+    updatedAt: ts,
+  });
+
+  await recordActivity({
+    action: 'papertrail.board.created',
+    targetType: 'board',
+    targetId: id,
+    summary: `Created board "${title}".`,
+  });
+
+  revalidatePath(`/papertrail/${projectId}`);
+}
+
+export async function renameBoard(projectId: string, boardId: string, formData: FormData) {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'editor');
+
+  const title = formString(formData, 'title');
+  if (!title) throw new Error('Board title is required.');
+
+  await db
+    .update(papertrailBoards)
+    .set({ title, updatedAt: now() })
+    .where(
+      and(
+        eq(papertrailBoards.tenantId, tenantId),
+        eq(papertrailBoards.projectId, projectId),
+        eq(papertrailBoards.id, boardId),
+      ),
+    );
+
+  await recordActivity({
+    action: 'papertrail.board.renamed',
+    targetType: 'board',
+    targetId: boardId,
+    summary: `Renamed board to "${title}".`,
+  });
+
+  revalidatePath(`/papertrail/${projectId}`);
+}
+
+/**
+ * Deletion is reserved to owners, not editors — same bar as
+ * hardDeleteProject, since a board carries the nodes/edges/assets pinned to
+ * it and there's no undo.
+ */
+export async function deleteBoard(projectId: string, boardId: string) {
+  const { db, userId, tenantId } = await getContext();
+  await requireProjectRole(db, tenantId, projectId, userId, 'owner');
+  const board = await getBoardRow(db, tenantId, projectId, boardId);
+
+  // Node/edge/asset cascade will be added once those tables gain writers
+  // (v0.1 steps 6+); nothing to clean up here yet beyond the board row.
+  await db
+    .delete(papertrailBoards)
+    .where(
+      and(
+        eq(papertrailBoards.tenantId, tenantId),
+        eq(papertrailBoards.projectId, projectId),
+        eq(papertrailBoards.id, boardId),
+      ),
+    );
+
+  await recordActivity({
+    action: 'papertrail.board.deleted',
+    targetType: 'board',
+    targetId: boardId,
+    summary: `Deleted board "${board.title}".`,
+  });
+
+  revalidatePath(`/papertrail/${projectId}`);
+}
+
+/**
+ * The server-side boundary for PTR-06: text-node body markup is untrusted
+ * until it passes through this allow-list sanitiser, and this is the only
+ * place that's allowed to run — never import sanitizeTextMarkup directly
+ * into a client component. No project/board role check: this doesn't touch
+ * any board's stored data, it just cleans HTML a signed-in user is about to
+ * hold in their own canvas state.
+ */
+export async function sanitizeTextNodeBody(html: string): Promise<string> {
+  await sdk.auth.requireSession();
+  return sanitizeTextMarkup(html);
 }

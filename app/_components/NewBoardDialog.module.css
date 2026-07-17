@@ -1,0 +1,10 @@
+.form {
+  display: grid;
+  gap: var(--sv-space-4);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sv-space-2);
+}

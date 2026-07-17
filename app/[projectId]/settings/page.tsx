@@ -23,8 +23,8 @@ export default async function ProjectSettingsPage({ params }: SettingsPageProps)
 
   return (
     <div className={styles.page}>
-      <Link href="/papertrail" className={styles.backLink}>
-        ← Back to projects
+      <Link href={`/papertrail/${project.id}`} className={styles.backLink}>
+        ← Back to boards
       </Link>
       <PageHeader
         title="Project settings"

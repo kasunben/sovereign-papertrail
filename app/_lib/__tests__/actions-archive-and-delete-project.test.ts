@@ -118,6 +118,7 @@ describe('hardDeleteProject', () => {
     await hardDeleteProject('project-1');
 
     expect(deleted.map((d) => d.table)).toEqual([
+      'papertrail_boards',
       'papertrail_project_members',
       'papertrail_projects',
     ]);
