@@ -1,0 +1,30 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  align-items: baseline;
+  display: flex;
+  gap: var(--sv-space-4);
+  padding: var(--sv-space-3) var(--sv-space-4);
+}
+
+.backLink {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-sm);
+  text-decoration: none;
+}
+
+.title {
+  font-size: var(--sv-font-size-md);
+  margin: 0;
+}
+
+.canvasArea {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}

@@ -1,0 +1,33 @@
+.node {
+  background: var(--sv-color-surface);
+  border: 1px solid var(--sv-color-border);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-card);
+  overflow: hidden;
+  width: 220px;
+}
+
+.selected {
+  border-color: var(--sv-color-accent);
+}
+
+.image {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.status {
+  align-items: center;
+  color: var(--sv-color-text-secondary);
+  display: flex;
+  font-size: var(--sv-font-size-sm);
+  gap: var(--sv-space-2);
+  padding: var(--sv-space-4);
+}
+
+.error {
+  color: var(--sv-color-error-text);
+  font-size: var(--sv-font-size-sm);
+  padding: var(--sv-space-3);
+}

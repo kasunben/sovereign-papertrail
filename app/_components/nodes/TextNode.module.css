@@ -1,0 +1,70 @@
+.node {
+  background: var(--sv-color-surface);
+  border: 1px solid var(--sv-color-border);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-card);
+  min-width: 200px;
+  max-width: 320px;
+}
+
+.selected {
+  border-color: var(--sv-color-accent);
+}
+
+.view {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  gap: var(--sv-space-2);
+  padding: var(--sv-space-3);
+  width: 100%;
+}
+
+.title {
+  font-size: var(--sv-font-size-sm);
+  margin: 0;
+}
+
+.body {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.body :global(p) {
+  margin: 0 0 var(--sv-space-2);
+}
+
+.body :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sv-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tag {
+  background: var(--sv-color-surface-sunken);
+  border-radius: var(--sv-radius-sm);
+  font-size: var(--sv-font-size-xs);
+  padding: 2px var(--sv-space-2);
+}
+
+.editForm {
+  display: grid;
+  gap: var(--sv-space-3);
+  padding: var(--sv-space-3);
+  width: 260px;
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sv-space-2);
+}

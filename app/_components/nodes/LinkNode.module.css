@@ -1,0 +1,75 @@
+.node {
+  background: var(--sv-color-surface);
+  border: 1px solid var(--sv-color-border);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-card);
+  overflow: hidden;
+  width: 240px;
+}
+
+.selected {
+  border-color: var(--sv-color-accent);
+}
+
+.link {
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+}
+
+.image {
+  display: block;
+  height: 120px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.body {
+  display: grid;
+  gap: var(--sv-space-1);
+  padding: var(--sv-space-3);
+}
+
+.title {
+  font-size: var(--sv-font-size-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+.description {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-sm);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.url {
+  color: var(--sv-color-text-secondary);
+  font-size: var(--sv-font-size-xs);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  align-items: center;
+  color: var(--sv-color-text-secondary);
+  display: flex;
+  font-size: var(--sv-font-size-sm);
+  gap: var(--sv-space-2);
+  padding: var(--sv-space-4);
+}
+
+.error {
+  color: var(--sv-color-error-text);
+  display: grid;
+  gap: var(--sv-space-1);
+  font-size: var(--sv-font-size-sm);
+  padding: var(--sv-space-3);
+}

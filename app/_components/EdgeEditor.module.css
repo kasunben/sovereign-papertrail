@@ -1,0 +1,40 @@
+.anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.form {
+  display: grid;
+  gap: var(--sv-space-3);
+}
+
+.swatches {
+  display: flex;
+  gap: var(--sv-space-2);
+}
+
+.swatch {
+  border: 2px solid transparent;
+  border-radius: var(--sv-radius-sm);
+  cursor: pointer;
+  height: 24px;
+  padding: 0;
+  width: 24px;
+}
+
+.swatchActive {
+  border-color: var(--sv-color-accent);
+}
+
+.toggleRow {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sv-space-2);
+}

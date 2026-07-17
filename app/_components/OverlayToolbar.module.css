@@ -1,0 +1,30 @@
+.toolbar {
+  background: var(--sv-color-surface);
+  border: 1px solid var(--sv-color-border);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-card);
+  display: grid;
+  gap: var(--sv-space-2);
+  padding: var(--sv-space-2) var(--sv-space-3);
+  position: absolute;
+  top: var(--sv-space-4);
+  left: var(--sv-space-4);
+  z-index: 10;
+}
+
+.row {
+  align-items: center;
+  display: flex;
+  gap: var(--sv-space-3);
+}
+
+.search {
+  width: 220px;
+}
+
+.hideToggle {
+  align-items: center;
+  display: flex;
+  gap: var(--sv-space-2);
+  font-size: var(--sv-font-size-sm);
+}
