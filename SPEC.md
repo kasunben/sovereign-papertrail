@@ -74,7 +74,7 @@ The current platform changes several early assumptions:
 | `shell`                            | `default`                                |
 | `adminOnly`                        | omitted (`false`)                        |
 | `icon`                             | `icon.svg`                               |
-| `permissions`                      | `auth:session`, `db:readWrite`, `data:provide`, `activity:write` |
+| `permissions`                      | `auth:session`, `db:readWrite`, `storage:readWrite`, `data:provide`, `activity:write` |
 | `repository`                       | `https://github.com/kasunben/sovereign-papertrail` |
 | `compatibility.minPlatformVersion` | `0.26.4`                                 |
 
@@ -92,7 +92,7 @@ Proposed `manifest.json`:
   "routePrefix": "/papertrail",
   "shell": "default",
   "icon": "icon.svg",
-  "permissions": ["auth:session", "db:readWrite", "data:provide", "activity:write"],
+  "permissions": ["auth:session", "db:readWrite", "storage:readWrite", "data:provide", "activity:write"],
   "repository": "https://github.com/kasunben/sovereign-papertrail",
   "compatibility": {
     "minPlatformVersion": "0.26.4"
