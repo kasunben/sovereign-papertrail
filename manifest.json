@@ -4,6 +4,7 @@
   "name": "PaperTrail",
   "version": "0.3.0",
   "description": "Evidence-mapping canvas — map your evidence, follow the story.",
+  "development": true,
   "type": "sovereign",
   "runtime": "native",
   "routePrefix": "/papertrail",
